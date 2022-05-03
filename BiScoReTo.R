@@ -148,7 +148,7 @@ df_list = sapply(unique(markers$set), function(this_set){
 	group_by(bin) %>% summarize(uniqueSCGs = n(), multipleSCGs = sum(count>1), sumSCGs = sum(count)) %>%
 	mutate(Ratio = uniqueSCGs / length(SET_MARKERS), additionalSCGs = sumSCGs - uniqueSCGs - multipleSCGs, score = a*Ratio - b*(multipleSCGs / uniqueSCGs) - c*(additionalSCGs/length(SET_MARKERS)))}, simplify=F)
 
-#if(i==1){for(set in names(df_list)){write.table(df_list[set], paste0(id,".",set,".out"), sep="\t", row.names=F)}}
+if(i==1){for(set in names(df_list)){write.table(df_list[set], paste0(id,".",set,".out"), sep="\t", row.names=F)}}
 
 
 
@@ -162,7 +162,13 @@ scoreframe$max_rat = scoreframe %>% select(contains("Ratio.")) %>% apply(., 1, m
 
 scoreframe = scoreframe %>% arrange(-max, set) %>% left_join(contig_to_bin %>% dplyr::select(bin,set) %>% distinct)
 
-#if(i==1){write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)}
+if(i==1){
+	write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)
+	if(!is.null(opt$score_only)){
+		cat("Scores for all initial bins written to:" , paste0(id,".scores.out"), "\n")
+		quit
+	}
+}
 
 if(nrow(scoreframe)==0 | scoreframe[1,"max"] < cutoff){
 cat("No bin surpasses the cutoff of:" , cutoff, "\n")
