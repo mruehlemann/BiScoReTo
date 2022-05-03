@@ -34,7 +34,7 @@ if (is.null(opt$input)){
 
 library(dplyr)
 library(readr)
-library(this.path)
+library(funr)
 ### READ IN BINNiNG INFO
 ### FORMAT: 3 columns => bin, contig, set
 
@@ -56,11 +56,11 @@ min_sharing = opt$min_sharing
 #### Read markers file
 
 if(opt$profile=="default"){
-	markers=read.table(file.path(this.dir(),"profiles","gtdb_rel207_default_markers.tsv"), stringsAsFactors=F, head=T)
+	markers=read.table(file.path(funr::get_script_path(),"profiles","gtdb_rel207_default_markers.tsv"), stringsAsFactors=F, head=T)
 }else if(opt$profile=="bac120"){
-	markers=read.table(file.path(this.dir(),"profiles","gtdb_rel207_bac120_markers.tsv"), stringsAsFactors=F, head=T)
+	markers=read.table(file.path(funr::get_script_path(),"profiles","gtdb_rel207_bac120_markers.tsv"), stringsAsFactors=F, head=T)
 }else if(opt$profile=="ar53"){
-	markers=read.table(file.path(this.dir(),"profiles","gtdb_rel207_ar53_markers.tsv"), stringsAsFactors=F, head=T)
+	markers=read.table(file.path(funr::get_script_path(),"profiles","gtdb_rel207_ar53_markers.tsv"), stringsAsFactors=F, head=T)
 }else{
 	print_help(opt_parser)
   stop("No valid profile selected.n", call.=FALSE)
