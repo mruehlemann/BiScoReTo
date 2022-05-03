@@ -17,8 +17,10 @@ option_list = list(
 		make_option(c("-t", "--threshold"), type="double", default=.5, help="Scoring minimum completeness threshold"),
 		make_option(c("--score_only"), action="store_true", dest="score_only", help="Only do scoring, no refinement [false]"),
 		make_option(c("--skip_merge_bins"), action="store_true", dest="skip_merge_bins", help="Skip bin merging [false]"),
-		make_option(c("-m", "--min_markers"), type="double", default=20, help="Minimum number of unique markers in bins to be considered as seed for bin merging"),
-		make_option(c("-s", "--min_sharing"), type="double", default=0.8, help="Minimum percentage of shared markers for bin sharing.")
+		make_option(c("-m", "--min_markers"), type="double", default=25, help="Minimum number of unique markers in bins to be considered as seed for bin merging"),
+		make_option(c("-s", "--min_sharing"), type="double", default=0.5, help="Minimum percentage of shared markers for bin sharing."),
+		make_option(c("-n", "--n_iterations"), type="double", default=2, help="Number of merging iterations to perform.")
+
 );
 
 
@@ -78,22 +80,38 @@ gene_to_contig=hmm %>% arrange(X3) %>%
 	distinct()
 
 ####
-if(skip_merge_bins = F){
-	gene_to_bin = left_join(contig_to_bin %>% filter(contig %in% gene_to_contig$contig), gene_to_contig, by="contig")
-	merge_cand = gene_to_bin %>% distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarise(n_markers = n()) %>% filter(n_markers >= min_markers) %>% pull(bin) %>% unique()
-	binmatch=sapply(merge_cand, function(thisbin){
-		print(thisbin)
-		thisbin_contigs = contig_to_bin %>% filter(bin == thisbin, contig %in% gene_to_contig$contig) %>% pull(contig)
-		thisbin_genes = gene_to_contig %>% filter(contig %in% thisbin_contigs)
-		return(contig_to_bin %>% filter(contig %in% thisbin_genes$contig) %>% left_join(thisbin_genes) %>%
-			distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarize(shared_markers=n()) %>%
-			mutate(shared_markers_rel = shared_markers/length(unique(thisbin_genes$gene))) %>% filter(bin != thisbin, shared_markers_rel >= min_sharing) %>%
-			mutate(bin_a=thisbin) %>% select(bin_a, bin_b=bin, shared_markers, shared_markers_rel))
-	}, simplify=F)
-	contig_to_bin_bisco = binmatch %>% do.call("rbind",.) %>% filter(shared_markers >= min_markers) %>% mutate(bin=paste0("Bisco_", seq_along(shared_markers))) %>%
-			apply(., 1, function(x) contig_to_bin %>% filter(bin %in% c(x[1], x[2])) %>% mutate(bin=x[5], set="Bisco")) %>% do.call("rbind", .) %>% data.frame(row.names=NULL)
-	contig_to_bin = rbind(contig_to_bin, contig_to_bin_bisco)
+if(is.null(opt$skip_merge_bins) == F){
+	cat("Skipping bin merging...")
+}else{
+	for(it in 1:opt$n_iter){
+		cat("Bisco iteration: ", it, "\n")
+		if(it==1){
+			contig_to_bin_bisco_it = contig_to_bin
+			contig_to_bin_bisco = contig_to_bin
+		}
+		gene_to_bin = left_join(contig_to_bin_bisco_it %>% filter(contig %in% gene_to_contig$contig), gene_to_contig, by="contig")
+		merge_cand = gene_to_bin %>% distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarise(n_markers = n()) %>%
+			left_join( gene_to_bin %>% group_by(bin) %>% summarise(n_markers_tot = n())) %>% filter(n_markers >= min_markers, n_markers_tot <= 150) %>% pull(bin) %>% unique()
+		binmatch=sapply(seq_along(merge_cand), function(thisbin_id){
+			cat("Processing candidate bin ",thisbin_id, " of ", length(merge_cand),"\r")
+			thisbin = merge_cand[thisbin_id]
+			thisbin_contigs = contig_to_bin_bisco_it %>% filter(bin == thisbin, contig %in% gene_to_contig$contig) %>% pull(contig)
+			thisbin_genes = gene_to_contig %>% filter(contig %in% thisbin_contigs)
+			if(it>1){thisbin_blacklist = bisco_out %>% filter(bin==thisbin) %>% select(bin_a, bin_b) %>% unlist %>% as.vector()}else{thisbin_blacklist=c()}
+			return(contig_to_bin %>% filter(contig %in% thisbin_genes$contig) %>% left_join(thisbin_genes) %>%
+				distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarize(shared_markers=n()) %>%
+				mutate(shared_markers_rel = shared_markers/length(unique(thisbin_genes$gene))) %>% filter(bin != thisbin, !bin %in% thisbin_blacklist, shared_markers_rel >= min_sharing) %>%
+				mutate(bin_a=thisbin) %>% select(bin_a, bin_b=bin, shared_markers, shared_markers_rel))
+		}, simplify=F)
+		bisco_out = binmatch %>% do.call("rbind",.) %>% filter(shared_markers >= min_markers) %>% mutate(bin=paste0(paste0("Bisco_",it,"_"), seq_along(shared_markers)))
+		contig_to_bin_bisco_it = bisco_out %>%	apply(., 1, function(x) contig_to_bin %>% filter(bin %in% c(x[1], x[2])) %>%
+			mutate(bin=x[5], set=paste0("Bisco_",it)) %>% distinct_at(.vars=c("bin","contig"), .keep_all=T)) %>% do.call("rbind", .) %>% data.frame(row.names=NULL)
+		contig_to_bin_bisco = rbind(contig_to_bin_bisco, contig_to_bin_bisco_it)
+		if(it==1){bisco_out_all = bisco_out}else{bisco_out_all = rbind(bisco_out_all, bisco_out)}
+	}
+	contig_to_bin = contig_to_bin_bisco
 }
+
 ####
 contig_to_bin.remain<-contig_to_bin
 contig_to_bin.out<-contig_to_bin[0,]
@@ -130,7 +148,7 @@ df_list = sapply(unique(markers$set), function(this_set){
 	group_by(bin) %>% summarize(uniqueSCGs = n(), multipleSCGs = sum(count>1), sumSCGs = sum(count)) %>%
 	mutate(Ratio = uniqueSCGs / length(SET_MARKERS), additionalSCGs = sumSCGs - uniqueSCGs - multipleSCGs, score = a*Ratio - b*(multipleSCGs / uniqueSCGs) - c*(additionalSCGs/length(SET_MARKERS)))}, simplify=F)
 
-if(i==1){for(set in names(df_list)){write.table(df_list[set], paste0(id,".",set,".out"), sep="\t", row.names=F)}}
+#if(i==1){for(set in names(df_list)){write.table(df_list[set], paste0(id,".",set,".out"), sep="\t", row.names=F)}}
 
 
 
@@ -142,9 +160,9 @@ for(set in names(df_list)){
 scoreframe$max = scoreframe %>% select(contains("score.")) %>% apply(., 1, max, na.rm=T)
 scoreframe$max_rat = scoreframe %>% select(contains("Ratio.")) %>% apply(., 1, max, na.rm=T)
 
-scoreframe = scoreframe %>% arrange(-max) %>% left_join(contig_to_bin %>% dplyr::select(bin,set) %>% distinct)
+scoreframe = scoreframe %>% arrange(-max, set) %>% left_join(contig_to_bin %>% dplyr::select(bin,set) %>% distinct)
 
-if(i==1){write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)}
+#if(i==1){write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)}
 
 if(nrow(scoreframe)==0 | scoreframe[1,"max"] < cutoff){
 cat("No bin surpasses the cutoff of:" , cutoff, "\n")
@@ -171,6 +189,7 @@ contig_to_bin.out <- rbind(contig_to_bin.out,contig_to_bin.remain %>% filter(bin
 #print(tail(scoreframe.out,1))
 cat("Remaining:", length(unique(contig_to_bin.remain$contig)), "contigs and", nrow(scoreframe),"candidate bins\n")
 scoreframe=scoreframe[-1,]
+if(substr(winnerset, 1, 5)=="Bisco") break
 }
 
 ### assess which bins were affected by the winning bin(s); store these for re-scoring in the next iteration
