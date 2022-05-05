@@ -32,13 +32,14 @@ if (is.null(opt$input)){
   stop("At least one argument must be supplied (input file).n", call.=FALSE)
 }
 
-library(dplyr)
-library(readr)
-library(funr)
+cat("Loading packages...\n")
+suppressMessages(library(dplyr))
+suppressMessages(library(readr))
+suppressMessages(library(funr))
 ### READ IN BINNiNG INFO
 ### FORMAT: 3 columns => bin, contig, set
 
-contig_to_bin<-read_delim(file=opt$input, delim="\t", col_names=c("bin","contig","set"))
+contig_to_bin<-read_delim(file=opt$input, delim="\t", col_names=c("bin","contig","set"), show_col_types = FALSE)
 contig_to_bin=contig_to_bin %>% filter(!is.na(set))
 
 id=opt$out
@@ -71,7 +72,7 @@ markers = markers %>% mutate(marker=gsub("[.]HMM|[.]hmm","", marker))
 ### READ IN Singe-copy gene annotation
 ### only best annotation per gene is kept => sort by X3 (evalue) and remove duplicates
 ### if the same gene occurs twice in a contig it is only counted once
-hmm<-read_delim(opt$hmm, delim="\t",col_names=FALSE)
+hmm<-read_delim(opt$hmm, delim="\t",col_names=FALSE, show_col_types = FALSE)
 gene_to_contig=hmm %>% arrange(X3) %>%
 	filter(!duplicated(X1)) %>%
 	dplyr::select(X1, X2) %>%
@@ -81,7 +82,7 @@ gene_to_contig=hmm %>% arrange(X3) %>%
 
 ####
 if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F){
-	cat("Skipping bin merging...")
+	cat("Skipping bin merging...\n")
 }else{
 	for(it in 1:opt$n_iter){
 		cat("Bisco iteration: ", it, "\n")
@@ -164,9 +165,9 @@ scoreframe = scoreframe %>% arrange(-max, set) %>% left_join(contig_to_bin %>% d
 
 if(i==1){
 	write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)
+	cat("Scores for all initial bins written to:" , paste0(id,".scores.out"), "\n")
 	if(!is.null(opt$score_only)){
-		cat("Scores for all initial bins written to:" , paste0(id,".scores.out"), "\n")
-		quit
+		quit(save="no")
 	}
 }
 
