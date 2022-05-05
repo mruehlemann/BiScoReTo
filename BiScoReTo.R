@@ -80,7 +80,7 @@ gene_to_contig=hmm %>% arrange(X3) %>%
 	distinct()
 
 ####
-if(is.null(opt$skip_merge_bins) == F){
+if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F){
 	cat("Skipping bin merging...")
 }else{
 	for(it in 1:opt$n_iter){
