@@ -11,7 +11,7 @@ conda create -n biscoreto_env
 conda activate biscoreto_env
 
 conda install mamba
-mamba install -c conda-forge -c bioconda -c r r-base r-optparse r-dplyr r-readr r-this.path hmmer prodigal parallel
+mamba install -c conda-forge -c bioconda -c r r-base r-optparse r-dplyr r-readr r-funr hmmer prodigal parallel
 ```
 
 ## Usage

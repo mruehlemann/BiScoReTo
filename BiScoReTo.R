@@ -18,7 +18,7 @@ option_list = list(
 		make_option(c("--score_only"), action="store_true", dest="score_only", help="Only do scoring, no refinement [false]"),
 		make_option(c("--skip_merge_bins"), action="store_true", dest="skip_merge_bins", help="Skip bin merging [false]"),
 		make_option(c("-m", "--min_markers"), type="double", default=25, help="Minimum number of unique markers in bins to be considered as seed for bin merging"),
-		make_option(c("-s", "--min_sharing"), type="double", default=0.5, help="Minimum percentage of shared markers for bin sharing."),
+		make_option(c("-s", "--min_sharing"), type="double", default=0.8, help="Minimum percentage of shared markers for bin sharing."),
 		make_option(c("-n", "--n_iterations"), type="double", default=2, help="Number of merging iterations to perform.")
 
 );
