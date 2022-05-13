@@ -42,6 +42,13 @@ suppressMessages(library(funr))
 contig_to_bin<-read_delim(file=opt$input, delim="\t", col_names=c("bin","contig","set"), show_col_types = FALSE)
 contig_to_bin=contig_to_bin %>% filter(!is.na(set))
 
+if(length(unique(contig_to_bin$set))){
+	cat("Only output from one binning alogorithm provided. Skipping merging and refinement. Scoring bins only.\n")
+	opt$score_only = T
+}
+
+
+
 id=opt$out
 
 ### Parameter setup a=1,b=0.5,c=0.5 is DAS Tool default; metawrap is much more stringent on contamination (b=5)
