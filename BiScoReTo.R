@@ -10,16 +10,16 @@ option_list = list(
   	make_option(c("-p", "--profile"), type="character", default="default",
               help="Profile used for scoring, all derived from GTDB release 207. default[=bac120+ar53], ar53, bac120. [default]", metavar="character"),
     make_option(c("-o", "--out"), type="character", default="BiScoReTo",
-              help="output file name base [default= %default]", metavar="character"),
-		make_option(c("-a", "--score_a"), type="double", default=1, help="Scoring parameter a"),
-		make_option(c("-b", "--score_b"), type="double", default=0.5, help="Scoring parameter b"),
-		make_option(c("-c", "--score_c"), type="double", default=0.5, help="Scoring parameter c"),
-		make_option(c("-t", "--threshold"), type="double", default=.5, help="Scoring minimum completeness threshold"),
+              help="output file name base [default=%default]", metavar="character"),
+		make_option(c("-a", "--score_a"), type="double", default=1, help="Scoring parameter a [default=%default]"),
+		make_option(c("-b", "--score_b"), type="double", default=0.5, help="Scoring parameter b [default=%default]"),
+		make_option(c("-c", "--score_c"), type="double", default=0.5, help="Scoring parameter c [default=%default]"),
+		make_option(c("-t", "--threshold"), type="double", default=0.5, help="Scoring minimum completeness threshold [default=%default]"),
 		make_option(c("--score_only"), action="store_true", dest="score_only", help="Only do scoring, no refinement [false]"),
 		make_option(c("--skip_merge_bins"), action="store_true", dest="skip_merge_bins", help="Skip bin merging [false]"),
-		make_option(c("-m", "--min_markers"), type="double", default=25, help="Minimum number of unique markers in bins to be considered as seed for bin merging"),
-		make_option(c("-s", "--min_sharing"), type="double", default=0.8, help="Minimum percentage of shared markers for bin sharing."),
-		make_option(c("-n", "--n_iterations"), type="double", default=2, help="Number of merging iterations to perform.")
+		make_option(c("-m", "--min_markers"), type="double", default=25, help="Minimum number of unique markers in bins to be considered as seed for bin merging [default=%default]"),
+		make_option(c("-s", "--min_sharing"), type="double", default=0.8, help="Minimum percentage of shared markers for bin sharing. [default=%default]"),
+		make_option(c("-n", "--n_iterations"), type="double", default=2, help="Number of merging iterations to perform. [default=%default]")
 
 );
 
